@@ -5,7 +5,7 @@ import seaborn as sns
 from datetime import datetime, date
 
 
-def calendar_full(year: int = None) -> pd.DataFrame:
+def calendar_full(year = None):
     """
     Creates a Pandas DataFrame with the following columns:
       Year             (int)          ; yr
@@ -161,7 +161,20 @@ def calendar_merge(year=None, data=None, section=None, sheet_type="odf"):
 
 def calendar_viz(year=None, data=None, section=None, sheet_type="odf", plot=False, ax=None):
     """
+    When plot is set to True, this produces the visualization in the form of heatmap.
 
+    Args:
+      year       : int, Year
+      data       : str, Path to the spreadsheet file
+      section    : str, the name of the sheet
+      sheet_type : str, None for Excel, "odf" for ODF (LibreOffice)
+      plot       : bool, if True, draws the plot, requires ax
+      ax         : str, the Axes object to draw the plot on
+
+    Returns:
+      plot:
+        true: Draws with matplotlib
+        false: Pandas DataFrame
     """
     # Read sheet
     _cal_long = calendar_merge(year=year, data=data, section=section, sheet_type=sheet_type)
