@@ -5,7 +5,7 @@ import seaborn as sns
 from datetime import datetime, date
 
 
-def calendar_full(year = None):
+def calendar_full(year=None, subset_month=None):
     """
     Creates a Pandas DataFrame with the following columns:
       Year             (int)          ; yr
@@ -19,7 +19,8 @@ def calendar_full(year = None):
       Status           (str)          ; status (default to 1 for empty)
 
     Args:
-      year (int) : Year to make a calendar for
+      year         : int, Year to make a calendar for
+      subset_month : str, Only return the specified month
 
     Return:
       A Pandas DataFrame with columns specified above
@@ -113,7 +114,7 @@ def calendar_wide(year=None):
     Create a Pandas DataFrame in wide format, rows as day of the week (start at Monday), columns as WOY
 
     Args:
-      year: Year to make the calendar for
+      year: int, Year to make the calendar for
 
     Return:
       A wide dataframe, to be used with calendar_viz()
@@ -137,10 +138,10 @@ def calendar_merge(year=None, data=None, section=None, sheet_type="odf"):
     Performs outer merge between calendar_full(year) and tracker data (as spreadsheet)
 
     Args:
-      year       : The year of tracking collection
-      data       : The spreadsheet file containing tracking information
-      section    : Section to retrieve
-      sheet_type : Use "odf" for Open Document Format (default), None for Excel spreadsheet
+      year       : int, The year of tracking collection
+      data       : str, The spreadsheet file containing tracking information
+      section    : str, Section to retrieve
+      sheet_type : str, Use "odf" for Open Document Format (default), None for Excel spreadsheet
 
     Returns:
       A merged Pandas DataFrame
@@ -159,17 +160,41 @@ def calendar_merge(year=None, data=None, section=None, sheet_type="odf"):
     return _df
 
 
-def calendar_viz(year=None, data=None, section=None, sheet_type="odf", plot=False, ax=None):
+def month_ticker(year=None):
+    """
+    Generate month_ticker, use inside calendar_viz() to show month on the x-axis
+
+    """
+    # Get full calendar
+    _calendar = calendar_full(year=year)
+
+    # Retrieve unique month names (3-letter), place into dictionary with corresponding first WOY of that month
+    _mo_week = {}
+    for _mo_e in _calendar["mo_e"].unique().tolist():
+        _month_first_week_number = _calendar.query(" mo_e == @_mo_e ")["woy"].min()  # Get first WOY of that month
+        _mo_week[_mo_e] = _month_first_week_number                                   # Place into dictionary
+
+    # Generate a list of numbers to pass into ax.set_xticklabels()
+    _ticker_list = ["" for x in range(1, _calendar["woy"].max() + 1)]
+    for _key in _mo_week:
+        _idx = _mo_week[_key]            # Get first WOY of each _key (month)
+        _ticker_list[_idx - 1] = _key    # Insert that into the list, -1 to account for zeroth-based indexing
+
+    return _ticker_list
+
+
+def calendar_viz(year=None, data=None, section=None, sheet_type="odf", plot=False, ax=None, mo_tick=True):
     """
     When plot is set to True, this produces the visualization in the form of heatmap.
 
     Args:
-      year       : int, Year
-      data       : str, Path to the spreadsheet file
-      section    : str, the name of the sheet
-      sheet_type : str, None for Excel, "odf" for ODF (LibreOffice)
-      plot       : bool, if True, draws the plot, requires ax
-      ax         : str, the Axes object to draw the plot on
+      year         : int, Year
+      data         : str, Path to the spreadsheet file
+      section      : str, the name of the sheet
+      sheet_type   : str, None for Excel, "odf" for ODF (LibreOffice)
+      plot         : bool, if True, draws the plot, requires ax
+      ax           : str, the Axes object to draw the plot on
+      mo_tick      : bool, if true, show month (3-letter str) on the x-axis
 
     Returns:
       plot:
@@ -207,6 +232,11 @@ def calendar_viz(year=None, data=None, section=None, sheet_type="odf", plot=Fals
     if plot:
         sns.heatmap(_cal_wide, ax=ax, cmap="PuRd", cbar=False, vmin=0, vmax=15, linewidths=.1)
         ax.set_title(f"{section}, Year {year}")    # Set title
-        ax.tick_params(axis="y", length=0)         # Remove ticks on y, but retain label
-        ax.set_xticklabels("")                     # Remove labels on x
-        ax.set_xticks([])                          # Remove ticks on x
+        ax.tick_params(axis="both", length=0)         # Remove ticks on y, but retain label
+
+        # Conditional for activating month ticks on the x-axis
+        if not mo_tick:
+            ax.set_xticklabels("")                     # Remove labels on x
+            ax.set_xticks([])                          # Remove ticks on x
+        if mo_tick:
+            ax.set_xticklabels(month_ticker(year=year))
