@@ -133,7 +133,7 @@ def calendar_wide(year=None):
     return _cal_wide
 
 
-def calendar_merge(year=None, data=None, section=None, sheet_type="odf"):
+def calendar_merge(year=None, data=None, section=None, sheet_type="odf", hue=False):
     """
     Performs outer merge between calendar_full(year) and tracker data (as spreadsheet)
 
@@ -142,6 +142,7 @@ def calendar_merge(year=None, data=None, section=None, sheet_type="odf"):
       data       : str, The spreadsheet file containing tracking information
       section    : str, Section to retrieve
       sheet_type : str, Use "odf" for Open Document Format (default), None for Excel spreadsheet
+      hue        : bool, default False. If true, sheet is assumed to have non-static values (any number)
 
     Returns:
       A merged Pandas DataFrame
@@ -152,9 +153,13 @@ def calendar_merge(year=None, data=None, section=None, sheet_type="odf"):
     # Rename column to match _calendar DataFrame
     _tracker = _tracker.rename(columns={"month": "mo_i", "day": "day_e"})
 
-    # Perform merge, for status column, df.fillna() to replace NaN with ones
+    # Perform merge, for status column, df.fillna() to replace NaN with ones (hue=False) or zeroes (hue=True)
     _calendar = calendar_full(year).drop(columns="status")
-    _df = _calendar.merge(_tracker, on=["date", "mo_i", "day_e"], how="outer").fillna(1)
+
+    if not hue:
+        _df = _calendar.merge(_tracker, on=["date", "mo_i", "day_e"], how="outer").fillna(1)
+    elif hue:
+        _df = _calendar.merge(_tracker, on=["date", "mo_i", "day_e"], how="outer").fillna(0)
 
     # Return data
     return _df
@@ -183,7 +188,7 @@ def month_ticker(year=None):
     return _ticker_list
 
 
-def calendar_viz(year=None, data=None, section=None, sheet_type="odf", plot=False, ax=None, mo_tick=True):
+def calendar_viz(year=None, data=None, section=None, sheet_type="odf", plot=False, ax=None, mo_tick=True, hue=False):
     """
     When plot is set to True, this produces the visualization in the form of heatmap.
 
@@ -195,6 +200,7 @@ def calendar_viz(year=None, data=None, section=None, sheet_type="odf", plot=Fals
       plot         : bool, if True, draws the plot, requires ax
       ax           : str, the Axes object to draw the plot on
       mo_tick      : bool, if true, show month (3-letter str) on the x-axis
+      hue          : bool, default False. If true, sheet is assumed to have non-static values (any number)
 
     Returns:
       plot:
@@ -202,7 +208,7 @@ def calendar_viz(year=None, data=None, section=None, sheet_type="odf", plot=Fals
         false: Pandas DataFrame
     """
     # Read sheet
-    _cal_long = calendar_merge(year=year, data=data, section=section, sheet_type=sheet_type)
+    _cal_long = calendar_merge(year=year, data=data, section=section, sheet_type=sheet_type, hue=hue)
 
     # Generate wide calendar
     _cal_wide = calendar_wide(year=year)
@@ -230,13 +236,19 @@ def calendar_viz(year=None, data=None, section=None, sheet_type="odf", plot=Fals
         return _cal_wide
 
     if plot:
-        sns.heatmap(_cal_wide, ax=ax, cmap="PuRd", cbar=False, vmin=0, vmax=15, linewidths=.1)
+        if not hue:
+            sns.heatmap(_cal_wide, ax=ax, cmap="PuRd", cbar=False, vmin=0, vmax=15, linewidths=.1)
+        elif hue:
+            _max_minutes = _cal_long["status"].max() + 60  # To increase the dynamic range, add 60 mins
+            sns.heatmap(_cal_wide, ax=ax, cmap="Greens", vmin=0, linewidth=.1, vmax=_max_minutes,
+                        cbar_kws={"orientation": "horizontal", "shrink": 0.25, "label": "time (m)", "pad": 0.2})
+
         ax.set_title(f"{section}, Year {year}")    # Set title
-        ax.tick_params(axis="both", length=0)         # Remove ticks on y, but retain label
+        ax.tick_params(axis="both", length=0)      # Remove ticks on y, but retain label
 
         # Conditional for activating month ticks on the x-axis
         if not mo_tick:
-            ax.set_xticklabels("")                     # Remove labels on x
-            ax.set_xticks([])                          # Remove ticks on x
+            ax.set_xticklabels("")     # Remove labels on x
+            ax.set_xticks([])          # Remove ticks on x
         if mo_tick:
             ax.set_xticklabels(month_ticker(year=year))
