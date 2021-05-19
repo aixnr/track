@@ -240,8 +240,21 @@ def calendar_viz(year=None, data=None, section=None, sheet_type="odf", plot=Fals
             sns.heatmap(_cal_wide, ax=ax, cmap="PuRd", cbar=False, vmin=0, vmax=15, linewidths=.1)
         elif hue:
             _max_minutes = _cal_long["status"].max() + 60  # To increase the dynamic range, add 60 mins
-            sns.heatmap(_cal_wide, ax=ax, cmap="Greens", vmin=0, linewidth=.1, vmax=_max_minutes,
-                        cbar_kws={"orientation": "horizontal", "shrink": 0.25, "label": "time (m)", "pad": 0.2})
+            _max_hours = _max_minutes / 60
+
+            # Minute to hour, function
+            def min_to_hr(x):
+                if x != 1.0:
+                    return x / 60
+                elif x == 1.0:
+                    return 0
+
+            # Minute to hour, perform .applymap()
+            _cal_wide = _cal_wide.applymap(min_to_hr)
+
+            # Plot
+            sns.heatmap(_cal_wide, ax=ax, cmap="Greens", vmin=0, linewidth=.1, vmax=_max_hours,
+                        cbar_kws={"orientation": "horizontal", "shrink": 0.25, "label": "time (hr)", "pad": 0.2})
 
         ax.set_title(f"{section}, Year {year}")    # Set title
         ax.tick_params(axis="both", length=0)      # Remove ticks on y, but retain label
