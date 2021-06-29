@@ -218,7 +218,7 @@ def calendar_viz(year=None, data=None, section=None, sheet_type="odf", plot=Fals
 
     # Looper to retrieve status data, then insert into specified day_i and woy from calendar_wide()
     _cols = ["woy", "day_i", "status"]
-    for _d in [x+1 for x in range(_doy_max)]:
+    for _d in [x+1 for x in range(int(_doy_max))]:
         _stat_info = _cal_long.query(" doy == @_d ")[_cols]
 
         # Get specific day_i, woy, and status as single number, subsetting [0] from .to_list() output
