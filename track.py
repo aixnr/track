@@ -25,9 +25,6 @@ def calendar_full(year=None, subset_month=None):
     Return:
       A Pandas DataFrame with columns specified above
     """
-    # Constant; total days in a year without Feb
-    _TOTAL_DAYS_MINUS_FEB = 337
-
     # Constant; check if leap year or not
     if year % 4 != 0:
         _feb = 28
@@ -35,9 +32,6 @@ def calendar_full(year=None, subset_month=None):
     else:
         _feb = 29
         _total_days = 366
-
-    # Constant, total days in a year + Feb
-    _TOTAL_DAYS = _TOTAL_DAYS_MINUS_FEB + _feb
 
     # Constant; dictionary of days in a month
     _month_dict = {
@@ -80,15 +74,15 @@ def calendar_full(year=None, subset_month=None):
         _mo_i = _mo                  # Key (month number)
         _mo_days = _month_dict[_mo]  # Value (total days in that given month)
 
-        _list_days = [x+1 for x in range(_mo_days)]           # Create list on number of days for a given month
-        _mo_cal = pd.DataFrame(_list_days, columns=["date"])  # Insert it into a DataFrame
-        _mo_cal["mo_i"] = _mo_i                               # Insert a column for month (integer)
-        _mo_cal["mo_e"] = _month_name[_mo_i]                  # Insert a column for month (English, 3 letter)
-        _calendar = _calendar.append(_mo_cal)                 # Append to _calendar DataFrame
+        _list_days = [x + 1 for x in range(_mo_days)]           # Create list on number of days for a given month
+        _mo_cal = pd.DataFrame(_list_days, columns=["date"])    # Insert it into a DataFrame
+        _mo_cal["mo_i"] = _mo_i                                 # Insert a column for month (integer)
+        _mo_cal["mo_e"] = _month_name[_mo_i]                    # Insert a column for month (English, 3 letter)
+        _calendar = pd.concat([_calendar, _mo_cal])             # Append loopy-ly
 
     # Insert Year (yr) Day of Year (doy)
     _calendar["yr"] = year
-    _days_list = [_d+1 for _d in range(_total_days)]
+    _days_list = [_d + 1 for _d in range(_total_days)]
     _calendar["doy"] = _days_list
 
     # Insert day of the week, English
@@ -127,7 +121,7 @@ def calendar_wide(year=None):
     _cal_wide = pd.DataFrame(np.ones(shape=(7, _week_max)))
 
     # Rename column, +1 (because it started with zero)
-    _cal_wide.columns = [x+1 for x in range(_week_max)]
+    _cal_wide.columns = [x + 1 for x in range(_week_max)]
 
     # Return
     return _cal_wide
@@ -218,7 +212,7 @@ def calendar_viz(year=None, data=None, section=None, sheet_type="odf", plot=Fals
 
     # Looper to retrieve status data, then insert into specified day_i and woy from calendar_wide()
     _cols = ["woy", "day_i", "status"]
-    for _d in [x+1 for x in range(int(_doy_max))]:
+    for _d in [x + 1 for x in range(int(_doy_max))]:
         _stat_info = _cal_long.query(" doy == @_d ")[_cols]
 
         # Get specific day_i, woy, and status as single number, subsetting [0] from .to_list() output
